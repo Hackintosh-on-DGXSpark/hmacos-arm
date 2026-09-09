@@ -1,0 +1,11 @@
+image: python:3.12-bookworm
+
+stages:
+  - check
+
+check:
+  stage: check
+  timeout: 15m
+  script:
+    - python -m pip install -r requirements-dev.txt
+    - make check

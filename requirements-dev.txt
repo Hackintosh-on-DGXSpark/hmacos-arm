@@ -1,0 +1,2 @@
+ruff==0.12.12
+clang-format==20.1.8
