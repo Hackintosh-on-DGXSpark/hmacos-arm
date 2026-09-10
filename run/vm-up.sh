@@ -21,7 +21,7 @@ EOF
 seconds=1800
 source_name=""
 ssh_port=""
-net=(--net)
+net=()
 positionals=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
