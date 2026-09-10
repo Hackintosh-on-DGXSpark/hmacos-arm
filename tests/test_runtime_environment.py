@@ -27,7 +27,9 @@ class RuntimeEnvironmentTests(unittest.TestCase):
                 clear=True,
             ):
                 env = runtime_environment(ProjectPaths.from_environment())
-                self.assertEqual(shutil.which("llvm-dis", path=env["PATH"]), str(executable))
+                self.assertEqual(
+                    shutil.which("llvm-dis", path=env["PATH"]), str(executable.resolve())
+                )
 
     def test_runtime_environment_preserves_caller_settings(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -85,6 +87,7 @@ class RuntimeEnvironmentTests(unittest.TestCase):
                 name="test",
                 renderer="nvidia",
                 accelerator="kvm",
+                cpus=8,
                 seconds=60,
                 ssh_port=None,
                 serial_socket=False,
@@ -115,9 +118,10 @@ class RuntimeEnvironmentTests(unittest.TestCase):
                 os.umask(old_umask)
             result = json.loads((instance / "result.json").read_text())
             self.assertEqual(result["exit"], 0, (instance / "qemu.log").read_text())
+            self.assertEqual(result["vcpus"], 8)
             output = (instance / "qemu.log").read_text()
             self.assertIn("fixture-llvm-dis", output)
             self.assertIn("fixture-spirv-val", output)
             self.assertIn(str(library), output)
             selected = json.loads((instance / "runtime-tools.json").read_text())
-            self.assertEqual(selected["llvm-dis"]["path"], str(llvm / "llvm-dis"))
+            self.assertEqual(selected["llvm-dis"]["path"], str((llvm / "llvm-dis").resolve()))

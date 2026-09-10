@@ -5,13 +5,14 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../scripts/common.sh"
 
 usage() {
     cat <<'EOF'
-Usage: run/vm-up.sh [seconds] [source-instance] [--ssh-port PORT] [--no-net]
+Usage: run/vm-up.sh [seconds] [source-instance] [--cpus N] [--ssh-port PORT] [--no-net]
 
   seconds           VM lifetime, 60..1800 (default 1800).
   source-instance   A stopped instance name under vm-instance/ to copy
                     (keeps installed guest tools). Omit for the clean image.
   --ssh-port PORT   Forward that loopback port to guest SSH.
   --no-net          Start with no network device (default is user-mode network).
+  --cpus N          Guest vCPU count, 1..8 (default 1).
 
 Graphics use the physical X11 session and NVIDIA Vulkan. The guest image and the
 source instance are never booted in place; a new vm-instance/<name>/ is created.
@@ -21,6 +22,7 @@ EOF
 seconds=1800
 source_name=""
 ssh_port=""
+cpus=1
 net=()
 positionals=()
 while [[ $# -gt 0 ]]; do
@@ -28,10 +30,17 @@ while [[ $# -gt 0 ]]; do
         -h|--help) usage; exit 0 ;;
         --ssh-port) shift; ssh_port=${1:-} ;;
         --no-net) net=(--no-net) ;;
+        --cpus)
+            [[ $# -ge 2 ]] || { printf 'Invalid --cpus: expected 1..8.\n' >&2; exit 2; }
+            shift; cpus=$1 ;;
         *) positionals+=("$1") ;;
     esac
     shift
 done
+if [[ ! $cpus =~ ^[1-8]$ ]]; then
+    printf 'Invalid --cpus: expected 1..8.\n' >&2
+    exit 2
+fi
 if [[ ${#positionals[@]} -ge 1 ]]; then seconds=${positionals[0]}; fi
 if [[ ${#positionals[@]} -ge 2 ]]; then source_name=${positionals[1]}; fi
 if [[ ${#positionals[@]} -gt 2 || ! $seconds =~ ^[1-9][0-9]{0,3}$ ]] || (( seconds < 60 || seconds > 1800 )); then
@@ -48,7 +57,7 @@ if [[ -n $ssh_port ]] && { [[ ! $ssh_port =~ ^[1-9][0-9]{0,4}$ ]] || ((ssh_port 
 fi
 hmacos_require_host
 
-HMACOS_REEXEC_ARGV=(bash "$(readlink -f "${BASH_SOURCE[0]}")" "$seconds" "$source_name" "${net[@]}")
+HMACOS_REEXEC_ARGV=(bash "$(readlink -f "${BASH_SOURCE[0]}")" "$seconds" "$source_name" --cpus "$cpus" "${net[@]}")
 [[ -n $ssh_port ]] && HMACOS_REEXEC_ARGV+=(--ssh-port "$ssh_port")
 hmacos_require_kvm
 
@@ -80,7 +89,7 @@ timeout 300s cp --reflink=auto --sparse=always "$source/disk.img" "$source/aux.i
 chmod 600 "$instance/disk.img" "$instance/aux.img.trimmed"
 
 supervisor=(python3 -m hmacos_arm.supervisor "$name" --accelerator kvm --seconds "$seconds" \
-    --renderer nvidia --serial-socket "${net[@]}")
+    --renderer nvidia --cpus "$cpus" --serial-socket "${net[@]}")
 [[ -n $ssh_port ]] && supervisor+=(--ssh-port "$ssh_port")
 
 setsid env QEMU_VMAPPLE_PAC_DEFAULTS=1 "${supervisor[@]}" >"$instance/launcher.log" 2>&1 &

@@ -50,6 +50,17 @@ class BuildCommandTests(unittest.TestCase):
     def test_boot_args_are_deterministic(self):
         self.assertEqual(qemu.build_command(**self.kwargs), qemu.build_command(**self.kwargs))
 
+    def test_eight_vcpus_are_forwarded_to_qemu(self):
+        default = qemu.build_command(**self.kwargs)
+        self.assertEqual(default[default.index("-smp") + 1], "1")
+        command = qemu.build_command(**self.kwargs, cpus=8)
+        self.assertEqual(command[command.index("-smp") + 1], "8")
+
+    def test_vcpu_limits_are_enforced(self):
+        for cpus in (0, -1, 9, "8", True):
+            with self.subTest(cpus=cpus), self.assertRaisesRegex(ValueError, "vCPU"):
+                qemu.build_command(**self.kwargs, cpus=cpus)
+
 
 class RenderEnvironmentTests(unittest.TestCase):
     def setUp(self):

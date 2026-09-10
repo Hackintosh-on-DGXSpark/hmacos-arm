@@ -17,6 +17,7 @@ run/vm-up.sh 1800                        # clean guest image
 run/vm-up.sh 1800 <instance>             # copy a stopped instance (keeps guest tools)
 run/vm-up.sh 1800 "" --ssh-port 12222    # forward a loopback port to guest SSH
 run/vm-up.sh 1800 "" --no-net            # no network device
+run/vm-up.sh 300 "" --cpus 8             # bounded 8-vCPU boot experiment
 ```
 
 `vm-up.sh` verifies `guest-image/`, copies the disk and AUX into a new
@@ -27,6 +28,12 @@ bridge); SSH is reachable only through `--ssh-port` on loopback.
 Keep the `vm-up.sh` terminal open; Ctrl-C stops that instance. Each run prints
 its instance directory; pass that name as `source-instance` next time to keep
 guest changes.
+
+`--cpus` selects 1..8 vCPUs (default 1). The pinned QEMU includes the cross-vCPU
+handoff locking and VMApple CPU-initialization handling needed for SMP. This
+initializes the secondary CPUs' PAC context; per-task PAC key switching and
+broader graphics compatibility remain incomplete. More vCPUs alone do not
+establish better interactive performance.
 
 Reims also needs `llvm-dis` and `spirv-val` **at runtime** to translate guest
 Metal shaders. The launcher restores the project-local sysroot tool/library

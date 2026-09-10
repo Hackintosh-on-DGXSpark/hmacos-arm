@@ -36,6 +36,7 @@ def parse_args():
     parser.add_argument("name")
     parser.add_argument("--accelerator", choices=("tcg", "kvm"), default="kvm")
     parser.add_argument("--seconds", type=int, default=300)
+    parser.add_argument("--cpus", type=int, choices=range(1, 9), default=1)
     parser.add_argument("--renderer", choices=RENDERERS, default="nvidia")
     parser.add_argument("--ssh-port", type=int)
     parser.add_argument("--serial-socket", action="store_true")
@@ -80,6 +81,7 @@ def main():
         base=base,
         ecid=machine_ecid(base),
         accelerator=args.accelerator,
+        cpus=args.cpus,
         seconds=args.seconds,
         renderer=args.renderer,
         ssh_port=args.ssh_port,
@@ -97,6 +99,7 @@ def main():
         "exit": process.returncode,
         "seconds": round(time.monotonic() - started, 2),
         "accelerator": args.accelerator,
+        "vcpus": args.cpus,
         "pac_defaults_shim": bool(os.environ.get("QEMU_VMAPPLE_PAC_DEFAULTS")),
         "requested_renderer": args.renderer,
     }

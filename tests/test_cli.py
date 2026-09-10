@@ -51,3 +51,13 @@ class EntryPointTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 2)
         self.assertIn("Invalid --ssh-port", result.stderr)
+
+    def test_invalid_vcpu_counts_are_rejected_before_host_access(self):
+        for value in ("0", "9", "-1", "abc", ""):
+            with self.subTest(value=value):
+                command = ["bash", str(ROOT / "run/vm-up.sh"), "300", "", "--cpus"]
+                if value:
+                    command.append(value)
+                result = subprocess.run(command, capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("Invalid --cpus", result.stderr)

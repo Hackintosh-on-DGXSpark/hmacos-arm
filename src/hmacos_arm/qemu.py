@@ -84,8 +84,11 @@ def build_command(
     ssh_port: int | None,
     serial_socket: bool,
     network: bool = True,
+    cpus: int = 1,
 ) -> list[str]:
     """Return the bounded QEMU command line for a disposable VMApple boot."""
+    if type(cpus) is not int or not 1 <= cpus <= 8:
+        raise ValueError("vCPU count must be an integer between 1 and 8")
     if serial_socket:
         serial = [
             "-chardev",
@@ -125,7 +128,7 @@ def build_command(
         "-cpu",
         cpu,
         "-smp",
-        "1",
+        str(cpus),
         "-m",
         GUEST_RAM,
         "-display",
