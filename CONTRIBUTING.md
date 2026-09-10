@@ -5,8 +5,8 @@ MIT licensed; modifications to dependencies retain upstream licenses and notices
 
 1. Install `requirements-dev.txt` in a local virtual environment.
 2. Run `make check`; use `make format` for original Python/C/Objective-C code.
-3. Keep dependency changes in `deps/` and `patches/`, with exact revisions and
-   archive hashes. Do not reformat downloaded third-party source trees.
+3. Commit dependency changes in the corresponding component fork, then update
+   its submodule gitlink in `deps/`. Do not reformat third-party source trees.
 4. Test Linux/KVM/NVIDIA changes on the DGX, with explicit bounds and a physical
    desktop. Unit tests do not establish GPU correctness.
 5. Record exact commands, versions, exit states, and limitations in a dated

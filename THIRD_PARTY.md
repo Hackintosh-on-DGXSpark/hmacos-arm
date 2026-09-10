@@ -1,9 +1,11 @@
 # Third-party provenance
 
 The root MIT license covers original project tooling and documentation only.
-Dependencies are downloaded into ignored `sysroot/`, not copied into this Git
-repository. Their own licenses, copyright notices, and redistribution obligations
-continue to apply. The version and hash authority is `deps/sources.lock.json`.
+Component forks are pinned as Git submodules under `deps/`, with QEMU nested at
+`deps/reims-vgpu/vendor/qemu`. Their own licenses, copyright notices, and
+redistribution obligations continue to apply. Exact component revisions are
+recorded by the submodule gitlinks; `.gitmodules` records their repository URLs.
+The upstream revisions below identify the forks' origins.
 
 | Component | Source / applicable notices |
 | --- | --- |
@@ -12,8 +14,8 @@ continue to apply. The version and hash authority is `deps/sources.lock.json`.
 | metal2vulkan | https://github.com/steelbrain/metal2vulkan at `8b78eaca3be72b4e596aa1c790a4cd114ac1e9ec`; LGPL-3.0-or-later |
 | keycodemapdb | QEMU project; upstream `LICENSE.*` notices and the revision pinned by QEMU's wrap file |
 | Berkeley SoftFloat/TestFloat | QEMU mirrors of John Hauser's libraries; BSD-3-Clause and included notices |
-| Rust crates | Registry checksums and versions in `deps/reims-Cargo.lock`; each crate retains its license |
-| macosvm | https://github.com/s-u/macosvm, tag `0.2-3`; copyright Simon Urbanek, GPL version 2 or (at the user's option) version 3, applies to the optional capture patch |
+| Rust crates | Registry checksums and versions in `deps/reims-vgpu/Cargo.lock`; each crate retains its license |
+| macosvm | https://github.com/s-u/macosvm, tag `0.2-3`; copyright Simon Urbanek, GPL version 2 or (at the user's option) version 3, also applies to the capture changes in the `deps/macosvm` fork |
 | Vulkan Headers/Loader/Tools | Khronos Group, Vulkan SDK `1.3.280`; Apache-2.0 and included notices |
 | MoltenVK | Khronos Group, `v1.2.8`; Apache-2.0 and included notices |
 | volk | `01986ac85fa2e5c70df09aeae9c907e27c5d50b2`; MIT |

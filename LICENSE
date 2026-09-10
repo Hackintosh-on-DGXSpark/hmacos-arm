@@ -21,5 +21,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 This license covers original project code and documentation. Upstream-derived
-patches and third-party components retain their respective licenses; see
-THIRD_PARTY.md and patches/README.md.
+modifications and third-party components retain their respective licenses; see
+THIRD_PARTY.md and the component repositories.
