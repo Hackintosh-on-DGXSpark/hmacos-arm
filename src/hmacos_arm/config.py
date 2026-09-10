@@ -43,6 +43,27 @@ class ProjectPaths:
         return cls(root, build, guest_image, bundle, instances, qemu)
 
 
+def runtime_environment(paths):
+    """Restore tools used by Reims while the guest runs (including llvm-dis)."""
+    env = dict(os.environ)
+    sysroot = Path(env.get("HMACOS_SYSROOT", paths.root / "sysroot")).expanduser().resolve()
+    directories = [
+        sysroot / "usr/lib/llvm-20/bin",
+        sysroot / "usr/bin",
+        Path("/usr/lib/llvm-21/bin"),
+        Path("/usr/lib/llvm-20/bin"),
+    ]
+    search = [str(path) for path in directories if path.is_dir()]
+    search.extend(env.get("PATH", os.defpath).split(os.pathsep))
+    env["PATH"] = os.pathsep.join(dict.fromkeys(search))
+    library = sysroot / "usr/lib/aarch64-linux-gnu"
+    if library.is_dir():
+        env["LD_LIBRARY_PATH"] = str(library) + (
+            os.pathsep + env["LD_LIBRARY_PATH"] if env.get("LD_LIBRARY_PATH") else ""
+        )
+    return env
+
+
 def current_instance(paths):
     pointer = paths.instances / CURRENT_POINTER
     if not pointer.is_file() or pointer.is_symlink():

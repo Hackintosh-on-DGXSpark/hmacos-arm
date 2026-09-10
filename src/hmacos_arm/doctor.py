@@ -7,13 +7,15 @@ import platform
 import shutil
 import subprocess
 
-from .config import ProjectPaths
+from .config import ProjectPaths, runtime_environment
 from .desktop import physical_x11_environment
+from .qemu import check_shader_tools
 
 
 def main():
     argparse.ArgumentParser(description=__doc__).parse_args()
     paths = ProjectPaths.from_environment()
+    os.environ.update(runtime_environment(paths))
     report = {
         "host": f"{platform.system()}/{platform.machine()}",
         "root": str(paths.root),
@@ -30,6 +32,7 @@ def main():
     ]
     report["missing_tools"] = missing
     try:
+        report["shader_tools"] = check_shader_tools()
         report["desktop"] = physical_x11_environment()
         report["gpu"] = subprocess.check_output(
             [

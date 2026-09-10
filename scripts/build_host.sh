@@ -16,7 +16,7 @@ EOF
 fi
 hmacos_require_host
 [[ $# -eq 0 ]] || { printf 'No arguments expected.\n' >&2; exit 2; }
-[[ -d $HMACOS_ROOT/sysroot/usr ]] && hmacos_use_sysroot
+[[ -d $HMACOS_SYSROOT/usr ]] && hmacos_use_sysroot
 
 jobs=${HMACOS_BUILD_JOBS:-4}
 [[ $jobs =~ ^[1-8]$ ]] || { printf 'HMACOS_BUILD_JOBS must be 1..8.\n' >&2; exit 2; }

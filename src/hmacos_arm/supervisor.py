@@ -13,8 +13,8 @@ import plistlib
 import subprocess
 import time
 
-from .config import ProjectPaths, validate_instance_storage
-from .qemu import RENDERERS, build_command, prepare_render_environment
+from .config import ProjectPaths, runtime_environment, validate_instance_storage
+from .qemu import RENDERERS, build_command, check_shader_tools, prepare_render_environment
 
 TIMEBASE_HZ = 1000000000
 DEFAULT_BOOT_ARGS = "-v serial=11 debug=0x14c"
@@ -65,8 +65,12 @@ def main():
     args = parse_args()
     os.umask(0o077)
     paths = ProjectPaths.from_environment()
+    os.environ.update(runtime_environment(paths))
     base, instance = paths.bundle, paths.instances / args.name
     validate_instance_storage(instance, base)
+    if args.renderer != "none":
+        tools = check_shader_tools()
+        (instance / "runtime-tools.json").write_text(json.dumps(tools, indent=2) + "\n")
     prepare_render_environment(instance, args.renderer)
     os.environ.update(handoff_environment(args.accelerator))
 

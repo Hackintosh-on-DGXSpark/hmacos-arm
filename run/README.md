@@ -28,6 +28,13 @@ Keep the `vm-up.sh` terminal open; Ctrl-C stops that instance. Each run prints
 its instance directory; pass that name as `source-instance` next time to keep
 guest changes.
 
+Reims also needs `llvm-dis` and `spirv-val` **at runtime** to translate guest
+Metal shaders. The launcher restores the project-local sysroot tool/library
+paths and checks both tools before starting QEMU. `run/doctor.sh` reports their
+resolved paths and versions; `METAL2VULKAN_LLVM_DIS` and
+`METAL2VULKAN_SPIRV_VAL` can select explicit executables.
+Set `HMACOS_SYSROOT` to reuse an existing private toolchain from a fresh checkout.
+
 ## Stop and inspect
 
 ```sh
@@ -35,8 +42,13 @@ run/vm-stop.sh
 run/vm-status.sh
 ```
 
-Per-instance evidence (`command.json`, `serial.log`, `qemu.log`,
+Per-instance evidence (`command.json`, `runtime-tools.json`, `serial.log`, `qemu.log`,
 `result.json`) is in `vm-instance/<name>/`.
+
+For black-screen diagnostics, inspect `tmp/reims-vgpu-fail.log` in that same
+instance. Reims shader-translation errors and `present_content`/`present_black`
+records are written there, not just to `qemu.log`. A host window or a successful
+`launchd` boot alone does not confirm a working guest desktop.
 
 ## Remote viewing from a Mac (optional)
 

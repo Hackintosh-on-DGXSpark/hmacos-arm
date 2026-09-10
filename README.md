@@ -46,14 +46,25 @@ files. `docs/` and `AGENTS.md` are local-only and not committed.
 ## Build (one-time, on the DGX)
 
 ```sh
-make deps         # apt packages + official rustup (sudo; project dirs only)
+make deps         # provision dependencies if absent; see scripts/install-deps.sh
 make submodules   # fetch pinned component submodules
 make build        # arm64 QEMU/Reims Vulkan binary into build/qemu/
-make doctor       # read-only host check
+run/doctor.sh     # read-only host and runtime shader-tool check
 ```
 
 `make deps` needs a non-root login with sudo. It does not replace the kernel,
 driver, or firmware. Output: `build/qemu/qemu-system-aarch64`.
+
+For a clean checkout on a development host with an existing private toolchain,
+set `HMACOS_SYSROOT=/path/to/existing/sysroot` and skip `make deps`. Build outputs
+still go into the new checkout's `build/`, and source dependencies come from its
+pinned submodules, not the shared toolchain directory. `HMACOS_SYSROOT` is also
+used at runtime: Metal shader translation invokes `llvm-dis` and `spirv-val`.
+The launcher checks them before starting QEMU.
+
+Existing private images can be reused with
+`HMACOS_BUNDLE=/path/to/verified/ventura-13.6-22G120`. The immutable image is
+validated and copied into a new instance before booting.
 
 ## Run a VM
 

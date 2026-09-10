@@ -2,12 +2,14 @@
 # Sourced by native entry points. Build products live under build/, guest inputs
 # under guest-image/, and each disposable VM under vm-instance/.
 HMACOS_ROOT=${HMACOS_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)}
+HMACOS_SYSROOT=${HMACOS_SYSROOT:-$HMACOS_ROOT/sysroot}
 HMACOS_BUILD_DIR=${HMACOS_BUILD_DIR:-$HMACOS_ROOT/build}
 HMACOS_GUEST_IMAGE_DIR=${HMACOS_GUEST_IMAGE_DIR:-$HMACOS_ROOT/guest-image}
 HMACOS_BUNDLE=${HMACOS_BUNDLE:-$HMACOS_GUEST_IMAGE_DIR/ventura-13.6-22G120}
 HMACOS_INSTANCE_DIR=${HMACOS_INSTANCE_DIR:-$HMACOS_ROOT/vm-instance}
 HMACOS_QEMU=${HMACOS_QEMU:-$HMACOS_BUILD_DIR/qemu/qemu-system-aarch64}
 export HMACOS_ROOT HMACOS_BUILD_DIR HMACOS_GUEST_IMAGE_DIR HMACOS_BUNDLE HMACOS_INSTANCE_DIR HMACOS_QEMU
+export HMACOS_SYSROOT
 export PYTHONPATH="$HMACOS_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONDONTWRITEBYTECODE=1
 
@@ -26,13 +28,13 @@ hmacos_require_host() {
 # toolchain, headers, libraries, and pkg-config files; use it without installing
 # anything system-wide.
 hmacos_use_sysroot() {
-    local sysroot=$HMACOS_ROOT/sysroot
+    local sysroot=$HMACOS_SYSROOT
     export PATH="$sysroot/build-venv/bin:$sysroot/usr/bin:$sysroot/cargo/bin:$sysroot/usr/lib/llvm-20/bin:$PATH"
     export PKG_CONFIG_PATH="$sysroot/usr/lib/aarch64-linux-gnu/pkgconfig:$sysroot/usr/share/pkgconfig"
     export PKG_CONFIG_LIBDIR="$sysroot/usr/lib/aarch64-linux-gnu/pkgconfig:$sysroot/usr/share/pkgconfig"
     export PKG_CONFIG_SYSROOT_DIR="$sysroot"
     export CFLAGS="-I$sysroot/usr/include -I$sysroot/usr/include/aarch64-linux-gnu${CFLAGS:+ $CFLAGS}"
-    export CXXFLAGS="$CFLAGS"
+    export CXXFLAGS="-I$sysroot/usr/include -I$sysroot/usr/include/aarch64-linux-gnu${CXXFLAGS:+ $CXXFLAGS}"
     export LDFLAGS="-L$sysroot/usr/lib/aarch64-linux-gnu -Wl,-rpath,$sysroot/usr/lib/aarch64-linux-gnu${LDFLAGS:+ $LDFLAGS}"
     export RUSTUP_HOME="$sysroot/rustup"
     export CARGO_HOME="$sysroot/cargo"
@@ -56,5 +58,6 @@ hmacos_require_kvm() {
         env HMACOS_ROOT="$HMACOS_ROOT" HMACOS_BUILD_DIR="$HMACOS_BUILD_DIR" \
         HMACOS_GUEST_IMAGE_DIR="$HMACOS_GUEST_IMAGE_DIR" HMACOS_BUNDLE="$HMACOS_BUNDLE" \
         HMACOS_INSTANCE_DIR="$HMACOS_INSTANCE_DIR" HMACOS_QEMU="$HMACOS_QEMU" \
+        HMACOS_SYSROOT="$HMACOS_SYSROOT" \
         "${HMACOS_REEXEC_ARGV[@]}"
 }

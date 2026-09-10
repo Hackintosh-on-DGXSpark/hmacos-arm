@@ -5,6 +5,8 @@ environment, and result recording live in :mod:`hmacos_arm.supervisor`.
 """
 
 import os
+import shutil
+import subprocess
 from pathlib import Path
 
 from .desktop import physical_x11_environment
@@ -12,6 +14,36 @@ from .desktop import physical_x11_environment
 RENDERERS = ("none", "lavapipe", "nvidia")
 GUEST_RAM = "8G"
 GUEST_RAM_ALIGNMENT = 16384
+
+
+def check_shader_tools() -> dict[str, dict[str, str]]:
+    """Reims invokes these tools during rendering, even with a prebuilt QEMU."""
+    tools = {}
+    for name in ("llvm-dis", "spirv-val"):
+        override = f"METAL2VULKAN_{name.upper().replace('-', '_')}"
+        selected = os.environ.get(override, name)
+        executable = shutil.which(selected)
+        if executable is None:
+            raise RuntimeError(
+                f"Missing runtime shader tool {name}: {selected}. "
+                f"Check sysroot/PATH or {override}; Reims cannot render without it."
+            )
+        try:
+            result = subprocess.run(
+                [executable, "--version"], capture_output=True, text=True, timeout=10
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise RuntimeError(f"Cannot run runtime shader tool {name}: {error}") from error
+        if result.returncode:
+            raise RuntimeError(
+                f"Runtime shader tool {name} failed ({result.returncode}): "
+                f"{result.stderr.strip() or result.stdout.strip()}"
+            )
+        tools[name] = {
+            "path": executable,
+            "version": next(iter(result.stdout.splitlines()), ""),
+        }
+    return tools
 
 
 def prepare_render_environment(run: Path, renderer: str) -> None:
