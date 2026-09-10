@@ -1,5 +1,8 @@
-# Private Apple software, VM state/identities, downloads, and local tools.
+# Private Apple software, guest images, VM instances, and local output.
 /artifacts/
+/guest-image/
+/vm-instance/
+/build/
 /sysroot/
 /packages/
 /logs/
@@ -9,7 +12,6 @@
 /.env
 /.env.*
 /.venv/
-/build/
 /dist/
 *.egg-info/
 __pycache__/

@@ -13,7 +13,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from hmacos_arm.config import ProjectPaths, tool_environment
+from hmacos_arm.config import ProjectPaths
 from hmacos_arm.desktop import physical_x11_environment
 
 
@@ -21,7 +21,7 @@ def main():
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
     paths = ProjectPaths.from_environment()
-    env = dict(tool_environment(paths), **physical_x11_environment())
+    env = dict(os.environ, **physical_x11_environment())
     root = paths.root
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 5900))
@@ -31,7 +31,7 @@ def main():
     )
     assert dimensions is not None
     expected_size = tuple(map(int, dimensions.groups()))
-    run = Path(tempfile.mkdtemp(prefix="desktop-share-check-", dir=paths.state))
+    run = Path(tempfile.mkdtemp(prefix="desktop-share-check-", dir=paths.instances))
     password_file = run / "vnc.passwd"
     password = secrets.token_hex(4)
     subprocess.run(

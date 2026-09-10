@@ -14,87 +14,74 @@ Guest Metal -> AppleParavirtGPU -> Reims / metal2vulkan -> host Vulkan -> GB10
 ```
 
 This reuses Reims; it is not PCI passthrough and installs no macOS NVIDIA driver.
-Apple firmware, disks, identities, credentials, and shader captures are not
-included. Supply your own legitimately obtained matching inputs.
-
-## Run the VM (day-to-day)
-
-On the DGX's **physical desktop**, as the desktop user:
-
-```sh
-run/doctor.sh                                       # read-only host check
-run/vm-up.sh 1800                                   # clean baseline
-run/vm-up.sh 1800 <source-run>                      # keep installed guest tools
-run/vm-up.sh 1800 "" --ssh-port 12222               # add a loopback SSH forward
-run/vm-stop.sh                                      # stop the current VM
-run/vm-status.sh                                    # show run, liveness, logs
-```
-
-`run/vm-up.sh` verifies the baseline, copies the disk and AUX into a new run
-under `artifacts/runs/`, starts the guarded handoff, and opens the Reims window on
-the physical screen. Keep its terminal open; Ctrl-C stops that VM. To retain a
-guest change, pass the printed run name as `source-run` next time.
-
-Optional viewing of that same physical screen from a Mac: `run/screen-share.sh`
-(loopback VNC over SSH).
-
-## Build the emulator (one-time)
-
-```sh
-make setup     # install the pinned Rust/Meson toolchain locally
-make fetch     # hash-pinned sources + patches into sysroot/
-make build     # arm64 QEMU/Reims Vulkan binary
-```
-
-Build output: `sysroot/reims-vgpu/vendor/qemu/build/qemu-system-aarch64`.
-Sources and RPMs are pinned in `deps/` and `patches/`. Nothing is installed
-system-wide; no driver, kernel, or service changes.
+Apple firmware, disks, identities, and credentials are not included. Supply your
+own legitimately obtained matching inputs.
 
 ## Layout
 
-| Path | Responsibility |
-| --- | --- |
-| `run/` | Operating the VM: `vm-up.sh`, `vm-stop.sh`, `vm-status.sh`, `screen-share.sh`, `doctor.sh` |
-| `scripts/` | Engineering tooling: build/fetch/setup/probes, the GDB handoff, publication audit, `common.sh` |
-| `src/hmacos_arm/` | Runtime library imported by `run/` scripts (see below) |
-| `probes/` | Original host KVM/Vulkan and guest Metal correctness probes |
-| `tools/guest-vulkan/` | Optional user-local `vulkaninfo` for the guest |
-| `deps/` | Source revisions + SHA-256, toolchain versions, Cargo lock |
-| `patches/` | Small, attributable upstream patch set and application notes |
-| `tests/` | Synthetic unit tests and explicitly invoked host integration checks |
-| `artifacts/`, `sysroot/` | Ignored private/generated state |
+```text
+hmacos-arm/
+├── deps/            component forks, pinned as git submodules
+│   ├── reims-vgpu/       (nested vendor/qemu -> qemu-reims-vgpu)
+│   ├── metal2vulkan/
+│   └── macosvm/          (optional, input preparation only)
+├── build/           all build products (ignored)
+│   ├── qemu/            out-of-tree QEMU/Reims binary
+│   └── rust/            reims-vgpu static library
+├── guest-image/     shared read-only base image (ignored, private)
+├── vm-instance/     one disposable copy/overlay per VM run (ignored)
+├── run/             operating a VM: vm-up / vm-stop / vm-status / screen-share / doctor
+├── scripts/         building: install-deps / build_host / build_probes / kvm handoff
+├── src/hmacos_arm/  runtime library the run/ scripts call
+├── in-guest-tools/  tools that run inside the guest (vulkan, metal-probe)
+├── probes/          host KVM and Vulkan probes
+└── tests/
+```
 
-### `src/hmacos_arm/` modules
+Components live in their own repositories under the
+[Hackintosh-on-DGXSpark](https://github.com/Hackintosh-on-DGXSpark) organization
+and are pinned here as submodules, so their revisions are tracked without patch
+files. `docs/` and `AGENTS.md` are local-only and not committed.
 
-| Module | Used by | Responsibility |
-| --- | --- | --- |
-| `config.py` | everything | Relocatable paths (`HMACOS_*`), run pointers, baseline/run safety checks |
-| `desktop.py` | `qemu`, `screen-share` | Resolve the active physical X11 session; refuse Wayland/SSH/virtual |
-| `devicetree.py` | handoff | Guarded in-place CPU `timebase-frequency` update |
-| `bundle.py` | `vm-up` | Verify the five input files against `SHA256SUMS` |
-| `qemu.py` | `supervisor` | Build the QEMU argv and the renderer environment |
-| `supervisor.py` | `vm-up` | Launch the bounded QEMU, run the handoff, record `result.json` |
-| `sources.py` | `make fetch` | Download/verify/patch pinned dependencies (build-time) |
-| `doctor.py` | `run/doctor.sh` | Read-only host prerequisite report |
+## Build (one-time, on the DGX)
 
-Two lifecycles are deliberately separate: **building the emulator** (`make`,
-`scripts/`, `deps/`, `patches/`) and **running a guest** (`run/`,
-`src/hmacos_arm/`). Running never rebuilds; building never boots.
+```sh
+make deps         # apt packages + official rustup (sudo; project dirs only)
+make submodules   # fetch pinned component submodules
+make build        # arm64 QEMU/Reims Vulkan binary into build/qemu/
+make doctor       # read-only host check
+```
 
-## Dependencies and when they are used
+`make deps` needs a non-root login with sudo. It does not replace the kernel,
+driver, or firmware. Output: `build/qemu/qemu-system-aarch64`.
 
-| Stage | Components |
-| --- | --- |
-| Provision inputs (optional, Mac) | `macosvm` (Apple VZ); Apple IPSW/firmware. Not distributed |
-| Build emulator (DGX) | `reims-vgpu`, `qemu-reims-vgpu`, `metal2vulkan`, QEMU's `keycodemapdb`/SoftFloat/TestFloat, Rust 1.98.1, Meson/Ninja, Python build deps, host libs |
-| Run VM (DGX) | Built `qemu-system-aarch64`, NVIDIA driver + Vulkan loader, physical X11, GDB (handoff), the 5 verified inputs |
-| Guest tools (optional) | Vulkan-Headers/Loader/Tools 1.3.280, volk, MoltenVK 1.2.8 |
-| Mac remote view (optional) | `x11vnc`/libvncserver, SSH, macOS Screen Sharing |
-| Dev/CI | ruff, clang-format, GitHub Actions, GitLab CI |
+## Run a VM
 
-Exact versions, revisions, and hashes: `deps/sources.lock.json`,
-`deps/build-requirements.txt`, `deps/reims-Cargo.lock`,
-`tools/guest-vulkan/sources.lock.json`. Licenses: [THIRD_PARTY.md](THIRD_PARTY.md).
+Prepare a matching guest image (disk, AUX/NVRAM, firmware, identity) in
+`guest-image/ventura-13.6-22G120/` with a verified `SHA256SUMS` and a
+`STAGING_COMPLETE` marker, then on the physical desktop:
+
+```sh
+run/vm-up.sh 1800                        # new instance from the clean image
+run/vm-up.sh 1800 <instance>             # copy a stopped instance (keeps tools)
+run/vm-up.sh 1800 "" --ssh-port 12222    # forward a loopback port to guest SSH
+run/vm-up.sh 1800 "" --no-net            # no network device (default is user-mode net)
+run/vm-stop.sh
+run/vm-status.sh
+```
+
+Each run gets its own `vm-instance/<name>/` (disposable disk + AUX copy, logs,
+`result.json`). The image and any source instance are never booted in place.
+Keep the `vm-up.sh` terminal open; Ctrl-C stops that instance.
+
+Optional viewing of the same physical screen from a Mac: `run/screen-share.sh`
+(loopback VNC over SSH).
+
+## Guest tools (optional)
+
+`in-guest-tools/vulkan/` installs a user-local `vulkaninfo` in the guest;
+`in-guest-tools/metal-probe/` is the Metal correctness probe. Neither is needed
+for the host GPU path.
 
 ## Testing
 
@@ -104,8 +91,8 @@ PATH="$PWD/.venv/bin:$PATH" make check
 ```
 
 Unit/format checks need no GPU, Apple software, or network. Host probes are
-separate, explicit experiments. CI never boots
-a macOS guest.
+explicit experiments (`make probes`). CI never boots a macOS guest.
 
-Original tooling is [MIT licensed](LICENSE); upstream patches/dependencies retain
-their licenses. See [security](SECURITY.md) before publishing or sharing.
+Original tooling is [MIT licensed](LICENSE); component forks and dependencies
+retain their upstream licenses, including Reims (LGPL/GPL) and QEMU (GPL). See
+[THIRD_PARTY.md](THIRD_PARTY.md) and [SECURITY.md](SECURITY.md).

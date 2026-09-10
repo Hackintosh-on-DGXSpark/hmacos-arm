@@ -8,7 +8,11 @@ from pathlib import PurePosixPath
 
 
 def main():
-    names = subprocess.check_output(["git", "ls-files", "-z"]).decode().split("\0")
+    raw = subprocess.check_output(["git", "ls-files", "-s", "-z"]).decode().split("\0")
+    entries = []
+    for record in filter(None, raw):
+        meta, name = record.split("\t", 1)
+        entries.append((meta.split()[0], name))
     forbidden_roots = {"artifacts", "sysroot", "packages", "logs", ".venv", "build", "dist"}
     forbidden_suffixes = {
         ".img",
@@ -31,7 +35,7 @@ def main():
     )
     failures = []
     checked = 0
-    for name in filter(None, names):
+    for mode, name in entries:
         path = PurePosixPath(name)
         if (
             path.parts[0] in forbidden_roots
@@ -41,6 +45,9 @@ def main():
             or path.name in {"vm.json", "vnc.passwd"}
         ):
             failures.append(f"private/generated path: {name}")
+            continue
+        if mode == "160000":
+            checked += 1
             continue
         data = subprocess.check_output(["git", "show", f":{name}"])
         if len(data) > 2 * 1024 * 1024 or b"\0" in data:

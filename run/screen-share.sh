@@ -11,7 +11,7 @@ if [[ ${1:-} == -h || ${1:-} == --help ]]; then
     exit 0
 fi
 seconds=${1:-1800}
-password_file=${2:-$HMACOS_STATE_DIR/desktop-share/vnc.passwd}
+password_file=${2:-$HMACOS_INSTANCE_DIR/.desktop-share/vnc.passwd}
 if [[ $# -gt 2 || ! $seconds =~ ^[1-9][0-9]{0,3}$ ]] || (( seconds < 60 || seconds > 1800 )); then
     printf 'Specify a timeout between 60 and 1800 seconds.\n' >&2
     exit 2
@@ -38,7 +38,7 @@ if [[ ! -e $password_file ]]; then
         printf 'Run this once interactively to create the VNC password file.\n' >&2
         exit 1
     fi
-    mkdir -p -m 700 "$HMACOS_STATE_DIR/desktop-share"
+    mkdir -p -m 700 "$HMACOS_INSTANCE_DIR/.desktop-share"
     "$x11vnc" -storepasswd "$password_file"
     chmod 600 "$password_file"
 fi

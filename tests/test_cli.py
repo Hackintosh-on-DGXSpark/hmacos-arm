@@ -4,12 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN_SCRIPTS = ("vm-up.sh", "vm-stop.sh", "vm-status.sh", "screen-share.sh", "doctor.sh")
-BUILD_SCRIPTS = (
-    "build_host.sh",
-    "fetch_dependencies.sh",
-    "setup_build_tools.sh",
-    "build_probes.sh",
-)
+BUILD_SCRIPTS = ("build_host.sh", "install-deps.sh", "build_probes.sh")
 
 
 class EntryPointTests(unittest.TestCase):
@@ -39,13 +34,13 @@ class EntryPointTests(unittest.TestCase):
 
     def test_source_path_traversal_is_rejected(self):
         result = subprocess.run(
-            ["bash", str(ROOT / "run/vm-up.sh"), "300", "../base"],
+            ["bash", str(ROOT / "run/vm-up.sh"), "300", "../image"],
             capture_output=True,
             text=True,
             timeout=10,
         )
         self.assertEqual(result.returncode, 2)
-        self.assertIn("Invalid source-run", result.stderr)
+        self.assertIn("Invalid source-instance", result.stderr)
 
     def test_invalid_ssh_port_is_rejected(self):
         result = subprocess.run(

@@ -4,33 +4,30 @@ set -euo pipefail
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../scripts/common.sh"
 
 if [[ ${1:-} == -h || ${1:-} == --help ]]; then
-    printf 'Usage: run/vm-stop.sh\nStop the current VM and clear the run pointer. Disks are retained.\n'
+    printf 'Usage: run/vm-stop.sh\nStop the current instance and clear the pointer. Storage is retained.\n'
     exit 0
 fi
 hmacos_require_host
 
-pid_file=$HMACOS_STATE_DIR/current.pid
-run_file=$HMACOS_STATE_DIR/current-run
-if [[ ! -s $pid_file || ! -s $run_file ]]; then
+pid_file=$HMACOS_INSTANCE_DIR/.current.pid
+name_file=$HMACOS_INSTANCE_DIR/.current-instance
+if [[ ! -s $pid_file || ! -s $name_file ]]; then
     printf 'No VM is recorded as running.\n'
     exit 0
 fi
 pid=$(cat "$pid_file")
-run=$(cat "$run_file")
+name=$(cat "$name_file")
 if [[ ! $pid =~ ^[0-9]+$ ]] || ! kill -0 -- "-$pid" 2>/dev/null; then
-    printf 'Recorded VM "%s" is not running; clearing pointer.\n' "$run"
-    rm -f "$pid_file" "$run_file"
+    printf 'Recorded instance "%s" is not running; clearing pointer.\n' "$name"
+    rm -f "$pid_file" "$name_file"
     exit 0
 fi
-printf 'Stopping VM "%s" (group %s)...\n' "$run" "$pid"
+printf 'Stopping instance "%s" (group %s)...\n' "$name" "$pid"
 kill -TERM -- "-$pid" 2>/dev/null || true
 for ((i = 0; i < 100; i++)); do
     kill -0 -- "-$pid" 2>/dev/null || break
     sleep 0.1
 done
-if kill -0 -- "-$pid" 2>/dev/null; then
-    printf 'VM did not stop on SIGTERM; sending SIGKILL.\n'
-    kill -KILL -- "-$pid" 2>/dev/null || true
-fi
-rm -f "$pid_file" "$run_file"
-printf 'Stopped. Disks remain in %s/%s\n' "$HMACOS_RUNS_DIR" "$run"
+kill -KILL -- "-$pid" 2>/dev/null || true
+rm -f "$pid_file" "$name_file"
+printf 'Stopped. Storage remains in %s/%s\n' "$HMACOS_INSTANCE_DIR" "$name"

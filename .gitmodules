@@ -1,0 +1,12 @@
+[submodule "deps/reims-vgpu"]
+	path = deps/reims-vgpu
+	url = https://github.com/Hackintosh-on-DGXSpark/reims-vgpu.git
+	branch = dgx-spark
+[submodule "deps/metal2vulkan"]
+	path = deps/metal2vulkan
+	url = https://github.com/Hackintosh-on-DGXSpark/metal2vulkan.git
+	branch = master
+[submodule "deps/macosvm"]
+	path = deps/macosvm
+	url = https://github.com/Hackintosh-on-DGXSpark/macosvm.git
+	branch = dgx-spark

@@ -4,8 +4,7 @@ import argparse
 import re
 from pathlib import Path
 
-from .config import ProjectPaths
-from .sources import sha256
+from .config import ProjectPaths, sha256
 
 FILES = {"disk.img", "aux.img", "aux.img.trimmed", "vm.json", "AVPBooter.vmapple2.bin"}
 

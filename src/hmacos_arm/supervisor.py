@@ -1,4 +1,4 @@
-"""Launch one bounded QEMU VMApple boot, hold the guarded handoff, record the result.
+"""Launch one bounded QEMU VMApple instance, hold the guarded handoff, record the result.
 
 User-facing entry points live in `run/`; this module is the runtime library they
 call. It never starts a virtual display or a persistent service.
@@ -13,7 +13,7 @@ import plistlib
 import subprocess
 import time
 
-from .config import ProjectPaths, tool_environment, validate_run_storage
+from .config import ProjectPaths, validate_instance_storage
 from .qemu import RENDERERS, build_command, prepare_render_environment
 
 HANDOFF = "scripts/inject_ventura_kvm.gdb"
@@ -23,20 +23,21 @@ DEFAULT_BOOT_ARGS = "-v serial=11 debug=0x14c"
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("run_name")
+    parser.add_argument("name")
     parser.add_argument("--accelerator", choices=("tcg", "kvm"), default="kvm")
     parser.add_argument("--seconds", type=int, default=300)
     parser.add_argument("--renderer", choices=RENDERERS, default="nvidia")
     parser.add_argument("--gdb-port", type=int)
     parser.add_argument("--ssh-port", type=int)
     parser.add_argument("--serial-socket", action="store_true")
+    parser.add_argument("--no-net", action="store_true")
     args = parser.parse_args()
     if platform.system() != "Linux" or platform.machine() != "aarch64":
         parser.error("run this on the Arm Linux DGX, not the local Mac")
     if os.geteuid() == 0:
         parser.error("run as the desktop user with process-scoped kvm group access, not root")
-    if not args.run_name.replace("-", "").isalnum() or not 1 <= args.seconds <= 1800:
-        parser.error("invalid run name or timeout (1..1800 seconds)")
+    if not args.name.replace("-", "").isalnum() or not 1 <= args.seconds <= 1800:
+        parser.error("invalid instance name or timeout (1..1800 seconds)")
     if args.gdb_port is not None and not 1024 <= args.gdb_port <= 65535:
         parser.error("GDB must use a nonprivileged loopback port")
     if args.ssh_port is not None and not 1024 <= args.ssh_port <= 65535:
@@ -53,15 +54,16 @@ def machine_ecid(base):
     return ecid
 
 
-def run_handoff(paths, run, gdb_port):
+def run_handoff(paths, instance, gdb_port):
     env = {
-        **tool_environment(paths),
-        "HMACOS_RUN_DIR": str(run),
+        **os.environ,
+        "HMACOS_RUN_DIR": str(instance),
+        "HMACOS_ROOT": str(paths.root),
         "HMACOS_TIMEBASE_HZ": str(TIMEBASE_HZ),
         "HMACOS_GDB_PORT": str(gdb_port),
         "HMACOS_BOOT_ARGS": DEFAULT_BOOT_ARGS,
     }
-    with (run / "handoff.log").open("wb") as log:
+    with (instance / "handoff.log").open("wb") as log:
         result = subprocess.run(
             [
                 "timeout",
@@ -80,21 +82,20 @@ def run_handoff(paths, run, gdb_port):
             timeout=120,
         )
     if result.returncode != 0:
-        raise RuntimeError(f"GDB handoff failed ({result.returncode}); see {run}/handoff.log")
+        raise RuntimeError(f"GDB handoff failed ({result.returncode}); see {instance}/handoff.log")
 
 
 def main():
     args = parse_args()
     os.umask(0o077)
     paths = ProjectPaths.from_environment()
-    base, run = paths.bundle, paths.runs / args.run_name
-    validate_run_storage(run, base)
-    os.environ.update(tool_environment(paths))
-    prepare_render_environment(run, args.renderer)
+    base, instance = paths.bundle, paths.instances / args.name
+    validate_instance_storage(instance, base)
+    prepare_render_environment(instance, args.renderer)
 
     command = build_command(
         qemu=paths.qemu,
-        run=run,
+        run=instance,
         base=base,
         ecid=machine_ecid(base),
         accelerator=args.accelerator,
@@ -103,25 +104,24 @@ def main():
         gdb_port=args.gdb_port,
         ssh_port=args.ssh_port,
         serial_socket=args.serial_socket,
+        network=not args.no_net,
     )
-    (run / "command.json").write_text(json.dumps(command, indent=2) + "\n")
+    (instance / "command.json").write_text(json.dumps(command, indent=2) + "\n")
 
     started = time.monotonic()
-    with (run / "qemu.log").open("xb") as output:
-        process = subprocess.Popen(command, cwd=run, stdout=output, stderr=subprocess.STDOUT)
+    with (instance / "qemu.log").open("xb") as output:
+        process = subprocess.Popen(command, cwd=instance, stdout=output, stderr=subprocess.STDOUT)
         if args.gdb_port is not None:
             deadline = time.monotonic() + 30
-            while not (run / "qmp.sock").exists():
+            while not (instance / "qmp.sock").exists():
                 if process.poll() is not None:
-                    raise RuntimeError(f"QEMU exited before handoff; see {run}/qemu.log")
+                    raise RuntimeError(f"QEMU exited before handoff; see {instance}/qemu.log")
                 if time.monotonic() >= deadline:
                     process.terminate()
                     raise RuntimeError("QEMU did not create its QMP socket in time")
                 time.sleep(0.1)
-            run_handoff(paths, run, args.gdb_port)
-            process.wait()
-        else:
-            process.wait()
+            run_handoff(paths, instance, args.gdb_port)
+        process.wait()
 
     result = {
         "exit": process.returncode,
@@ -130,9 +130,9 @@ def main():
         "pac_defaults_shim": bool(os.environ.get("QEMU_VMAPPLE_PAC_DEFAULTS")),
         "requested_renderer": args.renderer,
     }
-    (run / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+    (instance / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result))
-    print(f"Private boot evidence: {run}")
+    print(f"Private instance evidence: {instance}")
 
 
 if __name__ == "__main__":

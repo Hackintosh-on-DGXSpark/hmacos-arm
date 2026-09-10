@@ -52,6 +52,7 @@ def build_command(
     gdb_port: int | None,
     ssh_port: int | None,
     serial_socket: bool,
+    network: bool = True,
 ) -> list[str]:
     """Return the bounded QEMU command line for a disposable VMApple boot."""
     if serial_socket:
@@ -100,8 +101,6 @@ def build_command(
         "none",
         "-monitor",
         "none",
-        "-nic",
-        "none",
         *serial,
         "-qmp",
         f"unix:{run}/qmp.sock,server=on,wait=off",
@@ -125,13 +124,16 @@ def build_command(
     ]
     if gdb_port is not None:
         command += ["-S", "-gdb", f"tcp:127.0.0.1:{gdb_port}"]
-    if ssh_port is not None:
-        network_index = command.index("-nic")
-        del command[network_index : network_index + 2]
+    if network:
+        netdev = "user,id=net0,ipv6=off"
+        if ssh_port is not None:
+            netdev += f",hostfwd=tcp:127.0.0.1:{ssh_port}-:22"
         command += [
             "-netdev",
-            f"user,id=net0,restrict=on,ipv6=off,hostfwd=tcp:127.0.0.1:{ssh_port}-:22",
+            netdev,
             "-device",
             "virtio-net-pci,netdev=net0,mac=52:54:00:76:61:70",
         ]
+    else:
+        command += ["-nic", "none"]
     return command
