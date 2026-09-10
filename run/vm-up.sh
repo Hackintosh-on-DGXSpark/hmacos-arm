@@ -80,7 +80,7 @@ timeout 300s cp --reflink=auto --sparse=always "$source/disk.img" "$source/aux.i
 chmod 600 "$instance/disk.img" "$instance/aux.img.trimmed"
 
 supervisor=(python3 -m hmacos_arm.supervisor "$name" --accelerator kvm --seconds "$seconds" \
-    --renderer nvidia --gdb-port 19001 --serial-socket "${net[@]}")
+    --renderer nvidia --serial-socket "${net[@]}")
 [[ -n $ssh_port ]] && supervisor+=(--ssh-port "$ssh_port")
 
 setsid env QEMU_VMAPPLE_PAC_DEFAULTS=1 "${supervisor[@]}" >"$instance/launcher.log" 2>&1 &

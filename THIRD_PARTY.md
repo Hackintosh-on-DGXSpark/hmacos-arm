@@ -19,10 +19,11 @@ continue to apply. The version and hash authority is `deps/sources.lock.json`.
 | volk | `01986ac85fa2e5c70df09aeae9c907e27c5d50b2`; MIT |
 | x11vnc / LibVNCServer | Optional screen-sharing tools supplied by the host or a private sysroot; upstream GPL notices apply |
 
-The Apple device-tree format and guarded kernel handoff were studied using the
-public [Asahi macOS experiment](https://github.com/steelbrain/experiment-macOS-arm64-on-asahi-linux-arm64)
-and QEMU research helpers. The small in-place timer updater in this project is
-tested with synthetic trees and does not embed Apple device-tree dumps or code.
+The Apple boot-info layout, device-tree timebase handling, and firmware entry
+point were studied using the public
+[Asahi macOS experiment](https://github.com/steelbrain/experiment-macOS-arm64-on-asahi-linux-arm64)
+and QEMU research helpers. The in-QEMU firmware handoff does not embed Apple
+device-tree dumps or code.
 
 Apple firmware, IPSWs, VM disks, AUX/NVRAM, machine identities, credentials,
 captured Metal libraries/AIR, and guest screenshots are not distributed. Users

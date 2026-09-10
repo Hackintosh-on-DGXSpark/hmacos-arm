@@ -25,7 +25,7 @@ def main():
     }
     missing = [
         name
-        for name in ("timeout", "gdb", "nvidia-smi", "xrandr", "xdpyinfo", "loginctl", "systemctl")
+        for name in ("timeout", "nvidia-smi", "xrandr", "xdpyinfo", "loginctl", "systemctl")
         if shutil.which(name) is None
     ]
     report["missing_tools"] = missing

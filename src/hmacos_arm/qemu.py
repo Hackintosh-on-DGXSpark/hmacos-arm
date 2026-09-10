@@ -1,7 +1,7 @@
 """Build the QEMU argv and graphics environment for one VMApple boot.
 
-This module owns *what to run* only. Process lifecycle, the GDB handoff, and
-result recording live in :mod:`hmacos_arm.supervisor`.
+This module owns *what to run* only. Process lifecycle, the firmware handoff
+environment, and result recording live in :mod:`hmacos_arm.supervisor`.
 """
 
 import os
@@ -49,7 +49,6 @@ def build_command(
     accelerator: str,
     seconds: int,
     renderer: str,
-    gdb_port: int | None,
     ssh_port: int | None,
     serial_socket: bool,
     network: bool = True,
@@ -122,8 +121,6 @@ def build_command(
         "-device",
         "vmapple-virtio-blk-pci,variant=root,drive=root,share-rw=on",
     ]
-    if gdb_port is not None:
-        command += ["-S", "-gdb", f"tcp:127.0.0.1:{gdb_port}"]
     if network:
         netdev = "user,id=net0,ipv6=off"
         if ssh_port is not None:

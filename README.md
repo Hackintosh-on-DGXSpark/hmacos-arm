@@ -31,7 +31,7 @@ hmacos-arm/
 ├── guest-image/     shared read-only base image (ignored, private)
 ├── vm-instance/     one disposable copy/overlay per VM run (ignored)
 ├── run/             operating a VM: vm-up / vm-stop / vm-status / screen-share / doctor
-├── scripts/         building: install-deps / build_host / build_probes / kvm handoff
+├── scripts/         building and audit: install-deps / build_host / build_probes / audit_publication
 ├── src/hmacos_arm/  runtime library the run/ scripts call
 ├── in-guest-tools/  tools that run inside the guest (vulkan, metal-probe)
 ├── probes/          host KVM and Vulkan probes

@@ -1,4 +1,4 @@
-"""Launch one bounded QEMU VMApple instance, hold the guarded handoff, record the result.
+"""Launch one bounded QEMU VMApple instance, enable the firmware handoff, record the result.
 
 User-facing entry points live in `run/`; this module is the runtime library they
 call. It never starts a virtual display or a persistent service.
@@ -16,9 +16,19 @@ import time
 from .config import ProjectPaths, validate_instance_storage
 from .qemu import RENDERERS, build_command, prepare_render_environment
 
-HANDOFF = "scripts/inject_ventura_kvm.gdb"
 TIMEBASE_HZ = 1000000000
 DEFAULT_BOOT_ARGS = "-v serial=11 debug=0x14c"
+
+
+def handoff_environment(accelerator):
+    """Environment that enables QEMU's built-in VMApple firmware handoff."""
+    if accelerator != "kvm":
+        return {}
+    return {
+        "QEMU_VMAPPLE_HANDOFF": "1",
+        "QEMU_VMAPPLE_BOOT_ARGS": DEFAULT_BOOT_ARGS,
+        "QEMU_VMAPPLE_TIMEBASE_HZ": str(TIMEBASE_HZ),
+    }
 
 
 def parse_args():
@@ -27,7 +37,6 @@ def parse_args():
     parser.add_argument("--accelerator", choices=("tcg", "kvm"), default="kvm")
     parser.add_argument("--seconds", type=int, default=300)
     parser.add_argument("--renderer", choices=RENDERERS, default="nvidia")
-    parser.add_argument("--gdb-port", type=int)
     parser.add_argument("--ssh-port", type=int)
     parser.add_argument("--serial-socket", action="store_true")
     parser.add_argument("--no-net", action="store_true")
@@ -38,8 +47,6 @@ def parse_args():
         parser.error("run as the desktop user with process-scoped kvm group access, not root")
     if not args.name.replace("-", "").isalnum() or not 1 <= args.seconds <= 1800:
         parser.error("invalid instance name or timeout (1..1800 seconds)")
-    if args.gdb_port is not None and not 1024 <= args.gdb_port <= 65535:
-        parser.error("GDB must use a nonprivileged loopback port")
     if args.ssh_port is not None and not 1024 <= args.ssh_port <= 65535:
         parser.error("SSH forwarding must use a nonprivileged loopback port")
     return args
@@ -54,37 +61,6 @@ def machine_ecid(base):
     return ecid
 
 
-def run_handoff(paths, instance, gdb_port):
-    env = {
-        **os.environ,
-        "HMACOS_RUN_DIR": str(instance),
-        "HMACOS_ROOT": str(paths.root),
-        "HMACOS_TIMEBASE_HZ": str(TIMEBASE_HZ),
-        "HMACOS_GDB_PORT": str(gdb_port),
-        "HMACOS_BOOT_ARGS": DEFAULT_BOOT_ARGS,
-    }
-    with (instance / "handoff.log").open("wb") as log:
-        result = subprocess.run(
-            [
-                "timeout",
-                "--kill-after=5s",
-                "90s",
-                "gdb",
-                "-nx",
-                "-q",
-                "-batch",
-                "-x",
-                str(paths.root / HANDOFF),
-            ],
-            env=env,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            timeout=120,
-        )
-    if result.returncode != 0:
-        raise RuntimeError(f"GDB handoff failed ({result.returncode}); see {instance}/handoff.log")
-
-
 def main():
     args = parse_args()
     os.umask(0o077)
@@ -92,6 +68,7 @@ def main():
     base, instance = paths.bundle, paths.instances / args.name
     validate_instance_storage(instance, base)
     prepare_render_environment(instance, args.renderer)
+    os.environ.update(handoff_environment(args.accelerator))
 
     command = build_command(
         qemu=paths.qemu,
@@ -101,7 +78,6 @@ def main():
         accelerator=args.accelerator,
         seconds=args.seconds,
         renderer=args.renderer,
-        gdb_port=args.gdb_port,
         ssh_port=args.ssh_port,
         serial_socket=args.serial_socket,
         network=not args.no_net,
@@ -111,16 +87,6 @@ def main():
     started = time.monotonic()
     with (instance / "qemu.log").open("xb") as output:
         process = subprocess.Popen(command, cwd=instance, stdout=output, stderr=subprocess.STDOUT)
-        if args.gdb_port is not None:
-            deadline = time.monotonic() + 30
-            while not (instance / "qmp.sock").exists():
-                if process.poll() is not None:
-                    raise RuntimeError(f"QEMU exited before handoff; see {instance}/qemu.log")
-                if time.monotonic() >= deadline:
-                    process.terminate()
-                    raise RuntimeError("QEMU did not create its QMP socket in time")
-                time.sleep(0.1)
-            run_handoff(paths, instance, args.gdb_port)
         process.wait()
 
     result = {

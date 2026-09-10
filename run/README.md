@@ -20,7 +20,7 @@ run/vm-up.sh 1800 "" --no-net            # no network device
 ```
 
 `vm-up.sh` verifies `guest-image/`, copies the disk and AUX into a new
-`vm-instance/<name>/`, starts the guarded handoff, and opens the Reims window on
+`vm-instance/<name>/`, starts the QEMU firmware handoff, and opens the Reims window on
 the physical screen. The default network is QEMU user-mode networking (no host
 bridge); SSH is reachable only through `--ssh-port` on loopback.
 
@@ -35,7 +35,7 @@ run/vm-stop.sh
 run/vm-status.sh
 ```
 
-Per-instance evidence (`command.json`, `serial.log`, `qemu.log`, `handoff.log`,
+Per-instance evidence (`command.json`, `serial.log`, `qemu.log`,
 `result.json`) is in `vm-instance/<name>/`.
 
 ## Remote viewing from a Mac (optional)

@@ -17,15 +17,12 @@ class BuildCommandTests(unittest.TestCase):
             accelerator="kvm",
             seconds=300,
             renderer="nvidia",
-            gdb_port=19001,
             ssh_port=None,
             serial_socket=True,
         )
 
     def test_headless_has_no_graphics_and_no_network_by_default(self):
-        command = qemu.build_command(
-            **{**self.kwargs, "renderer": "none", "gdb_port": None, "network": False}
-        )
+        command = qemu.build_command(**{**self.kwargs, "renderer": "none", "network": False})
         self.assertIn("graphics=off", command[command.index("-machine") + 1])
         self.assertNotIn("-object", command)
         self.assertNotIn("-gdb", command)

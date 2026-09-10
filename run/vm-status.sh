@@ -24,7 +24,7 @@ else
 fi
 ps -C qemu-system-aarch64 -o pid,etime,pcpu,pmem,comm 2>/dev/null || true
 [[ -f $dir/result.json ]] && { printf 'result:\n'; cat "$dir/result.json"; }
-for log in handoff.log qemu.log serial.log; do
+for log in qemu.log serial.log; do
     if [[ -s $dir/$log ]]; then
         printf '\n== %s (last 5 lines) ==\n' "$log"
         tail -n 5 "$dir/$log"

@@ -2,7 +2,7 @@
 
 This is not a production isolation product. Use disposable guests and modest
 resource limits. The research PAC-defaults shim does not emulate architectural
-key switching; the guarded runtime kernel handoff is specific to tested Ventura
+key switching; the in-QEMU firmware handoff is specific to tested Ventura
 inputs. Do not use sensitive production workloads or credentials in the guest.
 
 - Never commit or redistribute Apple firmware, IPSWs, disk/AUX images, VM
@@ -16,7 +16,7 @@ inputs. Do not use sensitive production workloads or credentials in the guest.
 - Use the existing NVIDIA driver and kernel. No GPU unbinding, VFIO, permission
   changes to `/dev/kvm`, persistent group changes, or disabled host security are
   required by the default workflow.
-- GDB/QMP and optional VNC are restricted to loopback or private Unix sockets.
+- QMP and optional VNC are restricted to loopback or private Unix sockets.
   The default VM has no network device. Do not expose debug ports to a network.
 - Optional VNC mirrors the whole physical desktop and permits input. Use a
   separate private password and an SSH tunnel; it is not screen/session isolation.
