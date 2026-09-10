@@ -22,6 +22,22 @@ hmacos_require_host() {
     fi
 }
 
+# Prefer the project-local sysroot when present. It carries the DGX's private
+# toolchain, headers, libraries, and pkg-config files; use it without installing
+# anything system-wide.
+hmacos_use_sysroot() {
+    local sysroot=$HMACOS_ROOT/sysroot
+    export PATH="$sysroot/build-venv/bin:$sysroot/usr/bin:$sysroot/cargo/bin:$sysroot/usr/lib/llvm-20/bin:$PATH"
+    export PKG_CONFIG_PATH="$sysroot/usr/lib/aarch64-linux-gnu/pkgconfig:$sysroot/usr/share/pkgconfig"
+    export PKG_CONFIG_LIBDIR="$sysroot/usr/lib/aarch64-linux-gnu/pkgconfig:$sysroot/usr/share/pkgconfig"
+    export PKG_CONFIG_SYSROOT_DIR="$sysroot"
+    export CFLAGS="-I$sysroot/usr/include -I$sysroot/usr/include/aarch64-linux-gnu${CFLAGS:+ $CFLAGS}"
+    export CXXFLAGS="$CFLAGS"
+    export LDFLAGS="-L$sysroot/usr/lib/aarch64-linux-gnu -Wl,-rpath,$sysroot/usr/lib/aarch64-linux-gnu${LDFLAGS:+ $LDFLAGS}"
+    export RUSTUP_HOME="$sysroot/rustup"
+    export CARGO_HOME="$sysroot/cargo"
+}
+
 # Re-run the calling script under process-scoped kvm group access when needed.
 # Caller sets HMACOS_REEXEC_ARGV to the exact argv to replay.
 hmacos_require_kvm() {
