@@ -76,7 +76,7 @@ See [physical desktop access](../physical-desktop.md) for optional same-screen
 viewing from the Mac. In a DGX terminal:
 
 ```sh
-bash scripts/start_ventura_desktop.sh 1800 desktop-20260908-155305-178690
+bash run/vm-up.sh 1800 desktop-20260908-155305-178690
 ```
 
 The second argument selects the stopped guest containing the installed tools.

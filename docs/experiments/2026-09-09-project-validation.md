@@ -1,5 +1,9 @@
 # Project packaging and native validation
 
+> Note: this report predates the later split of `scripts/` (build) from `run/`
+> (operating the VM) and the `qemu.py`/`supervisor.py` split. Paths below reflect
+> the layout at the time; current paths are in `README.md`.
+
 ## Scope
 
 Converted the exploratory workspace into a relocatable source project. Runtime

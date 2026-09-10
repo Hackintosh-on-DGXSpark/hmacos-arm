@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Temporarily mirror the physical desktop, without starting another X server.
+# Optionally mirror the physical DGX desktop for remote viewing from a Mac.
+# Starts no X server and no persistent service; loopback only.
 set -euo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-root=$HMACOS_ROOT
-if [[ $# -eq 1 && $1 == --help ]]; then
-    printf 'Usage: bash share_dgx_desktop.sh [seconds] [password-file]\n'
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../scripts/common.sh"
+
+if [[ ${1:-} == -h || ${1:-} == --help ]]; then
+    printf 'Usage: run/screen-share.sh [seconds] [password-file]\n'
     printf 'Mirror the physical X11 desktop on 127.0.0.1:5900; 60..1800 seconds, default 1800.\n'
     printf 'First use prompts for a separate VNC password; use SSH forwarding from the Mac.\n'
     exit 0
@@ -15,11 +16,9 @@ if [[ $# -gt 2 || ! $seconds =~ ^[1-9][0-9]{0,3}$ ]] || (( seconds < 60 || secon
     printf 'Specify a timeout between 60 and 1800 seconds.\n' >&2
     exit 2
 fi
-if [[ $(uname -s)/$(uname -m) != Linux/aarch64 || $(id -u) -eq 0 ]]; then
-    printf 'Run this as the desktop user on the Arm Linux DGX, not the local Mac or root.\n' >&2
-    exit 2
-fi
+hmacos_require_host
 umask 077
+
 desktop_env=$(python3 -m hmacos_arm.desktop)
 while IFS='=' read -r key value; do
     case "$key" in
@@ -27,6 +26,7 @@ while IFS='=' read -r key value; do
         *) printf 'Unexpected desktop environment field.\n' >&2; exit 1 ;;
     esac
 done <<< "$desktop_env"
+
 x11vnc=$(hmacos_tool x11vnc)
 test -x "$x11vnc"
 if [[ -L $password_file ]]; then
@@ -42,7 +42,7 @@ if [[ ! -e $password_file ]]; then
     "$x11vnc" -storepasswd "$password_file"
     chmod 600 "$password_file"
 fi
-if [[ ! -f $password_file || ! -r $password_file || $(stat -c %u "$password_file") != $(id -u) ]] || \
+if [[ ! -f $password_file || ! -r $password_file || $(stat -c %u "$password_file") != $(id -u) ]] ||
     (( (8#$(stat -c %a "$password_file") & 077) != 0 )); then
     printf 'The VNC password file must belong to the desktop user and be readable only by its owner.\n' >&2
     exit 1

@@ -3,33 +3,34 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+RUN_SCRIPTS = ("vm-up.sh", "vm-stop.sh", "vm-status.sh", "screen-share.sh", "doctor.sh")
+BUILD_SCRIPTS = (
+    "build_host.sh",
+    "fetch_dependencies.sh",
+    "setup_build_tools.sh",
+    "build_probes.sh",
+)
 
 
 class EntryPointTests(unittest.TestCase):
     def test_help_does_not_launch_workloads(self):
-        for script in (
-            "start_ventura_desktop.sh",
-            "share_dgx_desktop.sh",
-            "build_host.sh",
-            "fetch_dependencies.sh",
-            "setup_build_tools.sh",
-            "doctor.sh",
-        ):
-            with self.subTest(script=script):
-                result = subprocess.run(
-                    ["bash", str(ROOT / "scripts" / script), "--help"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                )
-                self.assertEqual(result.returncode, 0, result.stderr)
+        for directory, scripts in (("run", RUN_SCRIPTS), ("scripts", BUILD_SCRIPTS)):
+            for script in scripts:
+                with self.subTest(script=f"{directory}/{script}"):
+                    result = subprocess.run(
+                        ["bash", str(ROOT / directory / script), "--help"],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_invalid_limits_are_rejected_before_host_access(self):
-        for script in ("start_ventura_desktop.sh", "share_dgx_desktop.sh"):
+        for script in ("vm-up.sh", "screen-share.sh"):
             for value in ("0", "59", "1801", "abc"):
                 with self.subTest(script=script, value=value):
                     result = subprocess.run(
-                        ["bash", str(ROOT / "scripts" / script), value],
+                        ["bash", str(ROOT / "run" / script), value],
                         capture_output=True,
                         text=True,
                         timeout=10,
@@ -38,10 +39,20 @@ class EntryPointTests(unittest.TestCase):
 
     def test_source_path_traversal_is_rejected(self):
         result = subprocess.run(
-            ["bash", str(ROOT / "scripts/start_ventura_desktop.sh"), "300", "../base"],
+            ["bash", str(ROOT / "run/vm-up.sh"), "300", "../base"],
             capture_output=True,
             text=True,
             timeout=10,
         )
         self.assertEqual(result.returncode, 2)
         self.assertIn("Invalid source-run", result.stderr)
+
+    def test_invalid_ssh_port_is_rejected(self):
+        result = subprocess.run(
+            ["bash", str(ROOT / "run/vm-up.sh"), "300", "", "--ssh-port", "99999"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Invalid --ssh-port", result.stderr)

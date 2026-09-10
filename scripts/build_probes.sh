@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+if [[ ${1:-} == -h || ${1:-} == --help ]]; then
+    printf 'Usage: bash scripts/build_probes.sh\nBuild the KVM and Vulkan host probes. Does not run them.\n'
+    exit 0
+fi
 [[ $(uname -s)/$(uname -m) == Linux/aarch64 ]] || { printf 'Build host probes on the Arm Linux DGX.\n' >&2; exit 2; }
 out=$HMACOS_ROOT/build/probes
 mkdir -p "$out"

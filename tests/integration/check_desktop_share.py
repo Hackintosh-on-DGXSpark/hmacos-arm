@@ -46,7 +46,7 @@ def main():
     os.chmod(password_file, 0o600)
     with (run / "server.log").open("w") as log:
         server = subprocess.Popen(
-            ["bash", str(root / "scripts/share_dgx_desktop.sh"), "60", str(password_file)],
+            ["bash", str(root / "run/screen-share.sh"), "60", str(password_file)],
             env=env,
             stdout=log,
             stderr=subprocess.STDOUT,

@@ -17,10 +17,23 @@ class ConfigurationTests(unittest.TestCase):
         with patch.dict(os.environ, {"HMACOS_ROOT": str(self.root)}, clear=True):
             paths = self.module.ProjectPaths.from_environment()
         self.assertEqual(paths.state, self.root / "artifacts")
+        self.assertEqual(paths.runs, paths.state / "runs")
         self.assertEqual(paths.bundle, paths.state / "ventura-13.6-22G120")
         self.assertEqual(
             paths.qemu, paths.sysroot / "reims-vgpu/vendor/qemu/build/qemu-system-aarch64"
         )
+
+    def test_current_run_pointer_roundtrip(self):
+        with patch.dict(os.environ, {"HMACOS_ROOT": str(self.root)}, clear=True):
+            paths = self.module.ProjectPaths.from_environment()
+            run = paths.runs / "vm-1"
+            run.mkdir(parents=True)
+            self.assertIsNone(self.module.current_run(paths))
+            self.module.record_launch(paths, run, 4321)
+            self.assertEqual(self.module.current_run(paths), run)
+            self.assertEqual((paths.state / "current.pid").read_text().strip(), "4321")
+            self.module.clear_launch(paths)
+            self.assertIsNone(self.module.current_run(paths))
 
     def test_state_and_tools_can_be_external(self):
         with patch.dict(

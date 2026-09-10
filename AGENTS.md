@@ -37,10 +37,10 @@ working host compositor alone does not establish guest GPU acceleration.
   `/run/user/1000/gdm/Xauthority`, and a 3840x2160 monitor on `USB-C-2`.
   These are observations, not fixed configuration. Wayland is not supported by
   the current launcher/sharing helpers and must not trigger a virtual fallback.
-- `start_ventura_desktop.sh [seconds] [source-run]` opens the VM on that physical
+- `run/vm-up.sh [seconds] [source-run]` opens the VM on that physical
   desktop. Source run `desktop-20260908-155305-178690` contains guest vulkaninfo;
   copying the clean baseline does not preserve installed tools.
-- Optional `share_dgx_desktop.sh` mirrors the same physical screen with a
+- Optional `run/screen-share.sh` mirrors the same physical screen with a
   private VNC password, only on `127.0.0.1:5900`. Use SSH forwarding to Mac port
   15900. It creates no virtual display or persistent service. See
   `docs/physical-desktop.md` for commands and limitations.
@@ -80,9 +80,10 @@ working host compositor alone does not establish guest GPU acceleration.
 
 ## Experiment Rules
 
-- Runtime Python lives under `src/hmacos_arm/`; native entry points are in
-  `scripts/`, original probes in `probes/`, and dependency pins/patches in
-  `deps/` and `patches/`. Do not copy dependencies into tracked source.
+- Runtime Python lives under `src/hmacos_arm/`; user-facing entry points in
+  `run/`, build entry points in `scripts/`, original probes in `probes/`, and
+  dependency pins/patches in `deps/` and `patches/`. Do not copy dependencies
+  into tracked source. `run/` only runs a guest; `scripts/`/`make` only build.
 - Run `make check` with `requirements-dev.txt` installed before committing.
   Source/build verification belongs on the DGX; CI runs only synthetic checks.
 - Before publishing, inspect staged content and run

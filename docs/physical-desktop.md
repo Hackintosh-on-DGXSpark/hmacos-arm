@@ -9,13 +9,13 @@ Log in as your desktop user on the physical screen. In the checkout, run in a DG
 SSH without X forwarding:
 
 ```sh
-bash scripts/start_ventura_desktop.sh 1800 desktop-20260908-155305-178690
+run/vm-up.sh 1800 desktop-20260908-155305-178690
 ```
 
 The source run above contains the installed guest `vulkaninfo`. Omit the second
-argument to start from the clean Ventura baseline instead. Every launch copies
-the source disk/AUX into a new run; use the printed new run name next time to
-retain subsequent changes. Never copy or reuse an active run as a source.
+argument to start from the clean Ventura baseline instead. `run/vm-stop.sh` stops
+the current VM and `run/vm-status.sh` shows its state and logs. See
+`run/README.md`.
 
 The launcher verifies the baseline, obtains process-scoped KVM access, and runs
 the guarded GDB handoff automatically. It uses one vCPU, 8 GiB RAM, and NVIDIA
@@ -39,7 +39,7 @@ at the physical keyboard.
 In a second DGX terminal:
 
 ```sh
-bash scripts/share_dgx_desktop.sh 1800
+run/screen-share.sh 1800
 ```
 
 For remote setup from the Mac, allocate a terminal so the first password prompt
@@ -47,7 +47,7 @@ works. Replace `dgx-spark` with your SSH alias and adjust the checkout path if
 it is not `~/hmacos-arm`:
 
 ```sh
-ssh -t dgx-spark 'bash ~/hmacos-arm/scripts/share_dgx_desktop.sh 1800'
+ssh -t dgx-spark 'bash ~/hmacos-arm/run/screen-share.sh 1800'
 ```
 
 First use prompts for a separate VNC password. It is stored only in the private

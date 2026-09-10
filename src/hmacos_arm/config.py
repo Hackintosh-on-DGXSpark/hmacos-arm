@@ -1,8 +1,14 @@
-"""Relocatable project paths and storage safety checks."""
+"""Relocatable project paths, runtime pointers, and storage safety checks."""
 
 import os
 from dataclasses import dataclass
 from pathlib import Path
+
+# Generated state is kept out of tracked source and off the login name/home.
+STATE_DEFAULT_NAME = "artifacts"
+RUNS_DIR_NAME = "runs"
+CURRENT_POINTER = "current-run"
+CURRENT_PID = "current.pid"
 
 
 @dataclass(frozen=True)
@@ -12,6 +18,7 @@ class ProjectPaths:
     sysroot: Path
     bundle: Path
     qemu: Path
+    runs: Path
 
     @classmethod
     def from_environment(cls):
@@ -20,7 +27,11 @@ class ProjectPaths:
             .expanduser()
             .resolve()
         )
-        state = Path(os.environ.get("HMACOS_STATE_DIR", root / "artifacts")).expanduser().resolve()
+        state = (
+            Path(os.environ.get("HMACOS_STATE_DIR", root / STATE_DEFAULT_NAME))
+            .expanduser()
+            .resolve()
+        )
         sysroot = Path(os.environ.get("HMACOS_SYSROOT", root / "sysroot")).expanduser().resolve()
         bundle = (
             Path(os.environ.get("HMACOS_BUNDLE", state / "ventura-13.6-22G120"))
@@ -36,7 +47,8 @@ class ProjectPaths:
             .expanduser()
             .resolve()
         )
-        return cls(root, state, sysroot, bundle, qemu)
+        runs = Path(os.environ.get("HMACOS_RUNS_DIR", state / RUNS_DIR_NAME)).expanduser().resolve()
+        return cls(root, state, sysroot, bundle, qemu, runs)
 
 
 def tool_environment(paths):
@@ -62,10 +74,41 @@ def tool_environment(paths):
     return env
 
 
-def validate_run_storage(run, base):
+def current_run(paths):
+    """Return the run directory recorded by the last successful launch, if any."""
+    pointer = paths.state / CURRENT_POINTER
+    if not pointer.is_file() or pointer.is_symlink():
+        return None
+    name = pointer.read_text().strip()
+    if not name or Path(name).name != name:
+        return None
+    run = paths.runs / name
+    return run if run.is_dir() and not run.is_symlink() else None
+
+
+def record_launch(paths, run, pid):
+    paths.state.mkdir(parents=True, exist_ok=True)
+    (paths.state / CURRENT_POINTER).write_text(run.name + "\n")
+    (paths.state / CURRENT_PID).write_text(f"{pid}\n")
+
+
+def clear_launch(paths):
+    for name in (CURRENT_POINTER, CURRENT_PID):
+        pointer = paths.state / name
+        if pointer.is_file() and not pointer.is_symlink():
+            pointer.unlink()
+
+
+def validate_baseline(base):
+    """Refuse an unverified or symlinked input bundle before any copy."""
     marker = base / "STAGING_COMPLETE"
     if not marker.is_file() or marker.is_symlink():
         raise ValueError("Verified baseline STAGING_COMPLETE marker required")
+
+
+def validate_run_storage(run, base):
+    """Refuse a run that is missing storage or aliases the baseline inode."""
+    validate_baseline(base)
     if not run.is_dir() or run.is_symlink():
         raise ValueError("Prepare a private, non-symlink run directory first")
     for name in ("disk.img", "aux.img.trimmed"):
