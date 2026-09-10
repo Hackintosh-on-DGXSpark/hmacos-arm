@@ -31,7 +31,8 @@ check: test lint
 deps:
 	bash scripts/install-deps.sh
 submodules:
-	git submodule update --init --recursive
+	git submodule update --init deps/reims-vgpu deps/metal2vulkan
+	git -C deps/reims-vgpu submodule update --init vendor/qemu
 build:
 	bash scripts/build_host.sh
 probes:

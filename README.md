@@ -54,6 +54,10 @@ run/doctor.sh     # read-only host and runtime shader-tool check
 
 `make deps` needs a non-root login with sudo. It does not replace the kernel,
 driver, or firmware. Output: `build/qemu/qemu-system-aarch64`.
+The first build downloads QEMU's required Meson subprojects at the revisions
+pinned in QEMU's `.wrap` files. `make submodules` fetches Reims, its QEMU fork,
+and metal2vulkan; optional local-Mac input tooling can be fetched separately with
+`git submodule update --init deps/macosvm`.
 
 For a clean checkout on a development host with an existing private toolchain,
 set `HMACOS_SYSROOT=/path/to/existing/sysroot` and skip `make deps`. Build outputs

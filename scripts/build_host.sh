@@ -7,8 +7,9 @@ if [[ ${1:-} == -h || ${1:-} == --help ]]; then
     cat <<'EOF'
 Usage: bash scripts/build_host.sh
 
-Requires initialized submodules (git submodule update --init --recursive) and the
-system build dependencies from scripts/install-deps.sh. Output goes to
+Requires initialized submodules (make submodules) and build dependencies from
+scripts/install-deps.sh or HMACOS_SYSROOT. QEMU may fetch its pinned Meson
+subprojects on the first build. Output goes to
 build/qemu/qemu-system-aarch64; the Rust static library to build/rust/.
 HMACOS_BUILD_JOBS sets parallelism (default 4).
 EOF
@@ -48,7 +49,7 @@ printf 'Configuring QEMU (out-of-tree) ...\n'
         --target-list=aarch64-softmmu \
         --enable-kvm --enable-tcg --enable-slirp --enable-fdt \
         --disable-docs --disable-werror --disable-gtk --disable-sdl --disable-vnc \
-        --disable-capstone --disable-rust --disable-download \
+        --disable-capstone --disable-rust --enable-download \
         --python="$(command -v python3)" -Dreims_vgpu_backend=vulkan
 ) >"$HMACOS_ROOT/logs/configure.log" 2>&1
 
