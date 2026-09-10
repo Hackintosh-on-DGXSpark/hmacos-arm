@@ -3,6 +3,8 @@
 /sysroot/
 /packages/
 /logs/
+/docs/
+/AGENTS.md
 /session*.md
 /.env
 /.env.*

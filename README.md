@@ -7,7 +7,7 @@ Linux KVM and the physical host GPU through Reims and Vulkan.
 passed two 65,536-element correctness runs and a one-error negative control on
 GB10, and guest Vulkan enumeration works through MoltenVK. Rendering artifacts,
 black frames/flicker, incomplete Metal compatibility, and default-device lookup
-failures remain. See [verified status](docs/status.md).
+failures remain.
 
 ```text
 Guest Metal -> AppleParavirtGPU -> Reims / metal2vulkan -> host Vulkan -> GB10
@@ -36,12 +36,12 @@ the physical screen. Keep its terminal open; Ctrl-C stops that VM. To retain a
 guest change, pass the printed run name as `source-run` next time.
 
 Optional viewing of that same physical screen from a Mac: `run/screen-share.sh`
-(loopback VNC over SSH). See [physical desktop](docs/physical-desktop.md).
+(loopback VNC over SSH).
 
 ## Build the emulator (one-time)
 
 ```sh
-make setup     # project-local Rust/Meson (see docs/build.md for native packages)
+make setup     # install the pinned Rust/Meson toolchain locally
 make fetch     # hash-pinned sources + patches into sysroot/
 make build     # arm64 QEMU/Reims Vulkan binary
 ```
@@ -62,7 +62,6 @@ system-wide; no driver, kernel, or service changes.
 | `deps/` | Source revisions + SHA-256, toolchain versions, Cargo lock |
 | `patches/` | Small, attributable upstream patch set and application notes |
 | `tests/` | Synthetic unit tests and explicitly invoked host integration checks |
-| `docs/` | Current guides plus dated `experiments/` evidence |
 | `artifacts/`, `sysroot/` | Ignored private/generated state |
 
 ### `src/hmacos_arm/` modules
@@ -105,7 +104,7 @@ PATH="$PWD/.venv/bin:$PATH" make check
 ```
 
 Unit/format checks need no GPU, Apple software, or network. Host probes are
-separate, explicit experiments: [testing guide](docs/testing.md). CI never boots
+separate, explicit experiments. CI never boots
 a macOS guest.
 
 Original tooling is [MIT licensed](LICENSE); upstream patches/dependencies retain
